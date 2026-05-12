@@ -165,27 +165,36 @@
     
     <!-- End of bodyEnd -->
 
-<style>
-/* Fixa o hero em px para evitar loop de crescimento via 100vh no iframe */
-.framer-TJPUH .framer-hvqgd { height: 900px !important; min-height: 0 !important; }
-[data-layout-template], [data-framer-root] { min-height: 0 !important; }
-</style>
 <script>
 (function() {
-  var done = false;
-  function sendHeight() {
-    if (done) return;
+  function fixAndMeasure() {
+    // Forçar altura do hero via inline style (prioridade máxima, bate qualquer CSS class)
+    var hero = document.querySelector('[data-framer-name="Hero - Section"]');
+    if (hero) {
+      hero.style.setProperty('height', '900px', 'important');
+      hero.style.setProperty('min-height', '0', 'important');
+    }
+
+    // Medir após o hero estar fixado
     var h = document.body.offsetHeight;
     if (h > 500) {
-      done = true;
       window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+      return true;
     }
+    return false;
   }
-  // Enviar uma única vez após o React terminar de renderizar
+
+  var sent = false;
+  function tryOnce() {
+    if (sent) return;
+    if (fixAndMeasure()) sent = true;
+  }
+
+  // Tentar logo + após React hidratar
   window.addEventListener('load', function() {
-    setTimeout(sendHeight, 800);
-    setTimeout(sendHeight, 1500);
-    setTimeout(sendHeight, 3000);
+    setTimeout(tryOnce, 500);
+    setTimeout(tryOnce, 1500);
+    setTimeout(tryOnce, 3000);
   });
 })();
 </script>
