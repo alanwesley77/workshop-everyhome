@@ -166,34 +166,27 @@
     <!-- End of bodyEnd -->
 
 <style>
-/* Remove min-height:100vh dos wrappers Framer para evitar loop de crescimento no iframe */
-[data-layout-template], [data-framer-root], #main > div { min-height: unset !important; }
-html, body { height: auto !important; }
+/* Fixa o hero em px para evitar loop de crescimento via 100vh no iframe */
+.framer-TJPUH .framer-hvqgd { height: 900px !important; min-height: 0 !important; }
+[data-layout-template], [data-framer-root] { min-height: 0 !important; }
 </style>
 <script>
 (function() {
-  var sent = false;
+  var done = false;
   function sendHeight() {
+    if (done) return;
     var h = document.body.offsetHeight;
-    if (h > 100) {
+    if (h > 500) {
+      done = true;
       window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
-      sent = true;
     }
   }
-
-  window.addEventListener('load', sendHeight);
-
-  // MutationObserver: detecta quando o React termina de renderizar
-  var mo = new MutationObserver(function() { sendHeight(); });
-  mo.observe(document.body, { childList: true, subtree: true });
-
-  // Polling por 10 segundos para cobrir animações do Framer
-  var count = 0;
-  var interval = setInterval(function() {
-    sendHeight();
-    count++;
-    if (count >= 20) clearInterval(interval);
-  }, 500);
+  // Enviar uma única vez após o React terminar de renderizar
+  window.addEventListener('load', function() {
+    setTimeout(sendHeight, 800);
+    setTimeout(sendHeight, 1500);
+    setTimeout(sendHeight, 3000);
+  });
 })();
 </script>
 </body>
