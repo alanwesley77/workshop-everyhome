@@ -165,44 +165,34 @@
     
     <!-- End of bodyEnd -->
 
+<style>
+/* Remove min-height:100vh dos wrappers Framer para evitar loop de crescimento no iframe */
+[data-layout-template], [data-framer-root], #main > div { min-height: unset !important; }
+html, body { height: auto !important; }
+</style>
 <script>
 (function() {
-  function getHeight() {
-    // Framer usa posicionamento absoluto — getBoundingClientRect no root é mais confiável
-    var root = document.querySelector('[data-framer-page-optimized]');
-    if (!root) root = document.querySelector('#main > div, #main');
-    if (root) {
-      var rect = root.getBoundingClientRect();
-      var h = rect.top + rect.height;
-      if (h > 100) return Math.ceil(h);
-    }
-    // Fallback: offsetHeight do body (sem contar elementos absolutos fora da tela)
-    return document.body.offsetHeight || document.documentElement.offsetHeight;
-  }
+  var sent = false;
   function sendHeight() {
-    var h = getHeight();
+    var h = document.body.offsetHeight;
     if (h > 100) {
       window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+      sent = true;
     }
   }
 
-  sendHeight();
   window.addEventListener('load', sendHeight);
-  window.addEventListener('resize', sendHeight);
 
-  if (window.ResizeObserver) {
-    var ro = new ResizeObserver(sendHeight);
-    ro.observe(document.body);
-  }
-
-  var mo = new MutationObserver(sendHeight);
+  // MutationObserver: detecta quando o React termina de renderizar
+  var mo = new MutationObserver(function() { sendHeight(); });
   mo.observe(document.body, { childList: true, subtree: true });
 
+  // Polling por 10 segundos para cobrir animações do Framer
   var count = 0;
   var interval = setInterval(function() {
     sendHeight();
     count++;
-    if (count >= 30) clearInterval(interval);
+    if (count >= 20) clearInterval(interval);
   }, 500);
 })();
 </script>
