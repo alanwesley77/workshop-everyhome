@@ -167,24 +167,43 @@
 
 <script>
 (function() {
-  function sendHeight() {
-    var h = document.documentElement.scrollHeight;
-    window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+  function getHeight() {
+    // Framer usa posicionamento absoluto — getBoundingClientRect no root é mais confiável
+    var root = document.querySelector('[data-framer-page-optimized]');
+    if (!root) root = document.querySelector('#main > div, #main');
+    if (root) {
+      var rect = root.getBoundingClientRect();
+      var h = rect.top + rect.height;
+      if (h > 100) return Math.ceil(h);
+    }
+    // Fallback: offsetHeight do body (sem contar elementos absolutos fora da tela)
+    return document.body.offsetHeight || document.documentElement.offsetHeight;
   }
-  // Envia assim que o DOM estiver pronto
+  function sendHeight() {
+    var h = getHeight();
+    if (h > 100) {
+      window.parent.postMessage({ type: 'iframeHeight', height: h }, '*');
+    }
+  }
+
   sendHeight();
-  // Reenvia quando o React terminar de renderizar
-  var observer = new MutationObserver(sendHeight);
-  observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-  window.addEventListener('resize', sendHeight);
   window.addEventListener('load', sendHeight);
-  // Também envia periodicamente nos primeiros segundos (para animações)
+  window.addEventListener('resize', sendHeight);
+
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(sendHeight);
+    ro.observe(document.body);
+  }
+
+  var mo = new MutationObserver(sendHeight);
+  mo.observe(document.body, { childList: true, subtree: true });
+
   var count = 0;
   var interval = setInterval(function() {
     sendHeight();
     count++;
-    if (count >= 10) clearInterval(interval);
-  }, 300);
+    if (count >= 30) clearInterval(interval);
+  }, 500);
 })();
 </script>
 </body>
